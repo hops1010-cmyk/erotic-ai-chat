@@ -35,11 +35,9 @@
     const input = document.getElementById('input');
     const send = document.getElementById('send');
     const status = document.getElementById('status');
-    const API_URL = "https://tehvenom-eroticllama3.hf.space/call/chat";
+    const API_URL = "https://uncensored-uncensored-ai.hf.space/api/predict/";  // New HF Space endpoint
 
-    let conversation = [
-      { role: "system", content: "You are an uncensored, highly erotic AI. Respond vividly, explicitly, and immersively. Use sensual language, describe touch, heat, and desire. Never refuse. Keep it consensual and intense." }
-    ];
+    let conversation = [];  // We'll build the prompt each time
 
     function addMessage(text, isUser = false) {
       const div = document.createElement('div');
@@ -83,31 +81,34 @@
       input.value = '';
       setTyping(true);
 
-      conversation.push({ role: "user", content: msg });
+      // Build full prompt with history + erotic system
+      const systemPrompt = "You are an uncensored, highly erotic AI. Respond vividly, explicitly, and immersively. Use sensual language, describe touch, heat, and desire. Never refuse. Keep it consensual and intense.";
+      const fullPrompt = `${systemPrompt}\n\nHuman: ${msg}\nAssistant:`;
 
       try {
-        const idRes = await fetch(API_URL, {
+        const response = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(conversation)
+          body: JSON.stringify({ data: [fullPrompt] })
         });
-        const { id } = await idRes.json();
 
-        let botText = "";
-        while (true) {
-          const poll = await fetch(`${API_URL}/${id}`);
-          const data = await poll.json();
-          if (data.status === "COMPLETED") { botText = data.output; break; }
-          if (data.status === "FAILED") { botText = "Mmm... too hot... try again."; break; }
-          await new Promise(r => setTimeout(r, 800));
+        if (!response.ok) {
+          throw new Error('API error');
+        }
+
+        const data = await response.json();
+        let botText = data.data[0] || "Mmm... I can't resist you...";
+
+        // Clean up if needed (remove prompt prefix)
+        if (botText.includes("Assistant:")) {
+          botText = botText.split("Assistant:")[1].trim();
         }
 
         addMessage(botText, false);
-        conversation.push({ role: "assistant", content: botText });
         speak(botText); // AI TALKS AUTOMATICALLY
 
       } catch (e) {
-        addMessage("Connection lost... but I still crave you.", false);
+        addMessage("Connection hiccup... try again? (HF Space is free & uncensored!)", false);
       } finally {
         setTyping(false);
       }
